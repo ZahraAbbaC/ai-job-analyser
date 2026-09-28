@@ -1,4 +1,5 @@
-from src.main import analyse_job
+from src.analyser import analyse_job
+
 
 def test_ai_job_description_analysis():
     job_description = """

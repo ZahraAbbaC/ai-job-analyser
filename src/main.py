@@ -1,14 +1,29 @@
-import re
+from fastapi import FastAPI
+from pydantic import BaseModel, StringConstraints
+from typing import Annotated
+from src.analyser import analyse_job
 
-def analyse_job(description: str) -> dict:
-    description_lower = description.lower()
-    word_count = len(description.split())
-    skills = ['python', 'sql', 'docker', 'fastapi']
-    skills_mentioned = {}
-    for skill in skills: 
-        skills_mentioned[f'mention_of_{skill}'] = bool(re.search(r'\b' + skill + r'\b', description_lower))
-    result = {
-        'word_count': word_count,
-        **skills_mentioned
-    }
-    return result
+
+NonEmptyString = Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
+
+class JobDescription(BaseModel):
+    description: NonEmptyString
+
+
+app = FastAPI()
+
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the AI Job Analyzer App to be!"}
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
+@app.post("/analyse-job")
+def analyse_job_endpoint(job: JobDescription):
+    analysis_result = analyse_job(job.description)
+    return analysis_result
