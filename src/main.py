@@ -1,13 +1,7 @@
 from fastapi import FastAPI
-from pydantic import BaseModel, StringConstraints
-from typing import Annotated
 from src.analyser import analyse_job
-
-
-NonEmptyString = Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
-
-class JobDescription(BaseModel):
-    description: NonEmptyString
+from src.ai_analyser import analyse_job_with_ai
+from src.models import JobDescription, JobAnalysis, AIJobAnalysis
 
 
 app = FastAPI()
@@ -23,7 +17,12 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.post("/analyse-job")
+@app.post("/analyse-job", response_model=JobAnalysis)
 def analyse_job_endpoint(job: JobDescription):
     analysis_result = analyse_job(job.description)
+    return analysis_result
+
+@app.post("/ai/analyse-job", response_model=AIJobAnalysis)
+def ai_analyse_job_endpoint(job: JobDescription):
+    analysis_result = analyse_job_with_ai(job.description)
     return analysis_result
