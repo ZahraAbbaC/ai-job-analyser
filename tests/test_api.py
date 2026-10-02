@@ -2,9 +2,11 @@ from fastapi.testclient import TestClient
 from src.main import app
 from unittest.mock import patch
 from src.models import AIJobAnalysis
+from src.exceptions import AIServiceError
 
 
 client = TestClient(app)
+
 
 def test_health_check():
     response = client.get("/health")
@@ -110,3 +112,18 @@ def test_ai_analyse_job_rejects_empty_description():
         )
         assert response.status_code == 422
         mock_analyse.assert_not_called()
+
+
+def test_ai_analyse_job_handles_service_failure():
+    with patch('src.main.analyse_job_with_ai') as mock_analyse:
+        mock_analyse.side_effect = AIServiceError("Could not connect to AI service.")
+        response = client.post(
+            "/ai/analyse-job",
+            json={
+                "description": "We are looking for a Junior AI Engineer."
+            }
+        )
+        assert response.status_code == 503
+        assert response.json() == {"detail": "AI service is temporarily unavailable"}
+
+
