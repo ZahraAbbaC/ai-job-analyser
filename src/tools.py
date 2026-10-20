@@ -1,3 +1,6 @@
+import json
+
+
 def get_candidate_profile():
     return {
         "name": "Candidate number one",
@@ -109,3 +112,18 @@ skill_match_tool = {
     },
     "strict": True,
 }
+
+
+#TODO: replace with tool registry later to avoid hardcoding tool names in execute_tool 
+def execute_tool(name: str, arguments: str):
+    args = json.loads(arguments)
+
+    if name == "get_candidate_profile":
+        return get_candidate_profile()
+    elif name == "get_job_preferences":
+        return get_job_preferences()
+    elif name == "calculate_skill_match":
+        return calculate_skill_match(args['required_skills'], args['candidate_skills'])
+    else:
+        raise ValueError(f"Unknown tool : {name}")
+

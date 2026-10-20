@@ -1,7 +1,13 @@
 import json
 from openai import OpenAI
-from src.tools import candidate_profile_tool, get_candidate_profile, job_preferences_tool, get_job_preferences, skill_match_tool, calculate_skill_match
 from dotenv import load_dotenv
+from src.agent_state import JobMatchState
+from src.tools import (
+    candidate_profile_tool, 
+    job_preferences_tool, 
+    skill_match_tool, 
+    execute_tool
+)
 
 
 load_dotenv()  # Load environment variables from .env file
@@ -10,23 +16,19 @@ load_dotenv()  # Load environment variables from .env file
 client = OpenAI()  # Create an OpenAI client instance
 
 
-def execute_tool(name: str, arguments: str):
-    args = json.loads(arguments)
-
-    if name == "get_candidate_profile":
-        return get_candidate_profile()
-    elif name == "get_job_preferences":
-        return get_job_preferences()
-    elif name == "calculate_skill_match":
-        return calculate_skill_match(args['required_skills'], args['candidate_skills'])
-    else:
-        raise ValueError(f"Unknown tool : {name}")
-
-
 def match_job(description: str):
     """
     Match a job description with a candidate's profile using OpenAI's Responses API.
     """
+
+    state: JobMatchState = {
+        "job_description": description,
+        "candidate_profile": None,
+        "job_preferences": None,
+        "skill_match": None,
+        "iterations": 0,
+        "status": "running",
+    }
 
 
     instructions = (
@@ -49,6 +51,7 @@ def match_job(description: str):
     max_iterations = 5
 
     for iteration in range(max_iterations):
+        state["iterations"] += 1
         print(f"\n--- Iteration {iteration + 1} ---")
 
         response = client.responses.create(
@@ -70,13 +73,24 @@ def match_job(description: str):
                 raise RuntimeError(
                     f"Model response did not complete: {response.status}"
                 )
+            state["status"] = "completed"
+            print("==== Final State ====,/n", state)
             return response.output_text  # return the final output text if no more tool calls are needed
 
 
         for item in tool_calls:
             print(f"Function call detected: {item.name}")
             print("arguments:", item.arguments)
+            
             tool_output = execute_tool(item.name, item.arguments)
+            
+            if item.name == "get_candidate_profile":
+                state["candidate_profile"] = tool_output
+            elif item.name == "get_job_preferences":
+                state["job_preferences"] = tool_output
+            elif item.name == "calculate_skill_match":
+                state["skill_match"] = tool_output
+
             input_list.append(
                 {
                     "type": "function_call_output",
@@ -85,6 +99,7 @@ def match_job(description: str):
                 }
             )
 
+    state["status"] = "max_iterations_reached"
     raise RuntimeError("Maximum iterations reached.")    
 
 
@@ -94,4 +109,6 @@ jd2 = "Senior Data Engineer requiring Python, Spark, Airflow, AWS and Kubernetes
 jd3 = "Join our innovative AI team to help improve internal business processes using emerging technologies."
 
 if __name__ == "__main__":
-    match_job("Junior backend engineer requiring Python.")
+    # match_job("Junior backend engineer requiring Python.")
+    match_job(jd1)
+    match_job(jd3)
