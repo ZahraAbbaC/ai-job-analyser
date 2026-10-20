@@ -92,4 +92,6 @@ def match_job(description: str):
 jd1 = "We are looking for a Junior Backend Engineer. Required: Python, FastAPI, PostgreSQL, Docker. Experience with AWS is a plus."
 jd2 = "Senior Data Engineer requiring Python, Spark, Airflow, AWS and Kubernetes." 
 jd3 = "Join our innovative AI team to help improve internal business processes using emerging technologies."
-print(match_job(jd2))
+
+if __name__ == "__main__":
+    match_job("Junior backend engineer requiring Python.")
