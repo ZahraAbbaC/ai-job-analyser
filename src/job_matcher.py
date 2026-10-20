@@ -81,15 +81,26 @@ def match_job(description: str):
         for item in tool_calls:
             print(f"Function call detected: {item.name}")
             print("arguments:", item.arguments)
-            
-            tool_output = execute_tool(item.name, item.arguments)
-            
-            if item.name == "get_candidate_profile":
-                state["candidate_profile"] = tool_output
-            elif item.name == "get_job_preferences":
-                state["job_preferences"] = tool_output
-            elif item.name == "calculate_skill_match":
-                state["skill_match"] = tool_output
+
+            # cache tool outputs to avoid redundant calls and update the state accordingly
+            if item.name == "get_candidate_profile" and state["candidate_profile"] is not None:
+                tool_output = state["candidate_profile"]
+
+            elif item.name == "get_job_preferences" and state["job_preferences"] is not None:
+                tool_output = state["job_preferences"]
+
+            else:
+                tool_output = execute_tool(item.name, item.arguments)
+
+                if item.name == "get_candidate_profile":
+                    state["candidate_profile"] = tool_output
+
+                elif item.name == "get_job_preferences":
+                    state["job_preferences"] = tool_output
+
+                elif item.name == "calculate_skill_match":
+                    state["skill_match"] = tool_output
+
 
             input_list.append(
                 {
